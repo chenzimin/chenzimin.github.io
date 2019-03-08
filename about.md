@@ -4,7 +4,8 @@ title: About
 permalink: /about/
 ---
 
-Ph.D. student at KTH Royal Institute of Technology working with automatic program repair
+The reason that I write these blog is because:
+> If you can't explain it simply, you don't understand it well enough.
 
 ### Contact me
 
