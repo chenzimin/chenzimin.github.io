@@ -4,7 +4,7 @@ title: Explaining automatic program repair using concrete example
 visible: 0
 ---
 
-When I started working with automatic program repair (Feb 2018). My first question was: "Just how can we automatically repair bugs?". Much like other technologies, once you understand what is going on under the hood. You realize that it is nothing magical, we can solve the problem by simplifying the problem with empirically verified assumptions. So this blog post is intended for people that are interesting in the question, "Just how can we automatically repair bugs?". This by no means the state-of-the-art solution in the field, rather than just very simple approach to illustrate the idea.
+When I started working with automatic program repair (Feb 2018). My first question was: "How the heck can we automatically repair bugs?". Much like other technologies, once you understand what is going on under the hood. You realize that it is nothing magical, we can solve the problem by simplifying the problem with empirically verified assumptions. So this blog post is intended for people that are interesting in the question, "How the heck can we automatically repair bugs?". This by no means the state-of-the-art solution in the field, rather than just very simple approach to illustrate the idea.
 
 
 What is automatic program repair? Martin Monperrus defined it in his paper ["Automatic Software Repair: a Bibliography"](https://arxiv.org/abs/1807.00515) as:
