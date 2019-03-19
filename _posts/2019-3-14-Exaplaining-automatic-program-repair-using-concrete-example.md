@@ -1,10 +1,10 @@
 ---
 layout: post
 title: Explaining automatic program repair using concrete example
-visible: 0
+visible: 1
 ---
 
-When I started working with automatic program repair (Feb 2018). My first question was: "How the heck can we automatically repair bugs?". Much like other technologies, once you understand what is going on under the hood. You realize that it is nothing magical, we can solve the problem by simplifying the problem with empirically verified assumptions. So this blog post is intended for people that are interesting in the question, "How the heck can we automatically repair bugs?". This by no means the state-of-the-art solution in the field, rather than just very simple approach to illustrate the idea.
+When I started working with automatic program repair (Feb 2018). My first question was: "How the heck can we automatically repair bugs?". Much like other technologies, once you understand what is going on under the hood. You realize that it is nothing magical, we can solve the problem by simplifying the problem with empirically verified assumptions. So this blog post is intended for people that are interesting in the question, "How the heck can we automatically repair bugs?". This by no means the state-of-the-art solution in the field, rather than just a very simple approach to illustrate the idea.
 
 
 What is automatic program repair? Martin Monperrus defined it in his paper ["Automatic Software Repair: a Bibliography"](https://arxiv.org/abs/1807.00515) as:
@@ -103,7 +103,7 @@ In the same time, I will also limit the operation that can be done on source com
 | Remove | Remove the current code component |
 | Replace | Replace the current code component with other code component |
 
-Now we are ready to modify the source code. We will define code component as expression, and our scope of redundancy assumption to all expressions in the same file. Therefore our code components, or **repair ingredients**, in our toy example are:
+Now we are ready to modify the source code. We will define code component as expression, and we will reuse all expressions in the same file. Therefore all our expressions, or **repair ingredients**, in our toy example are:
 ```python
 a
 b
@@ -112,7 +112,7 @@ a+b
 a >= 10
 ```
 
-Our objective is to modify the expression "`a`" in "`return a`" with add, remove or replace mutation operation. Since we are working with expression, we can skip the add operation (with statement it makes more sense), and the remove operation does not need any repair ingredients, since we just remove the current expression. The **search space** (the space where we search for the correct patch) of our toy algorithm for the expression "`a`" is therefore 5 + 1 = 6. We have 5 repair ingredients where each ingredient can replace "`a`", and we have 1 more patch where "`a`" is simply removed. In short, we will generate the following patches:
+Our objective is to modify the only expression "`a`" in "`return a`" with add, remove or replace mutation operation. Since we are working with expression, we can skip the add operation (with statement it makes more sense), and the remove operation does not need any repair ingredients, since we just remove the current expression. The **search space** (the space where we search for the correct patch) of our repair algorithm for "`return a`" is therefore 5 + 1 = 6 patches. We have 5 repair ingredients where each ingredient can replace "`a`", and we have 1 more patch where "`a`" is simply removed. In short, we will generate the following patches:
 
 patch_1
 ```diff
@@ -174,9 +174,9 @@ def sum(a, b):
     return a+b
 ```
 
-Next, we will take the next candidate in the list, which is "`if(a >= 10)`" (breaks tie with line number). Again we have the same repair ingredients and mutation operators. And we will generate more patches. The same procedure applies for all candidate return by the fault localization step.
+Next, we will take the next candidate in the list, which is "`if(a >= 10)`" (breaks tie with line number). Again we have the same repair ingredients and mutation operators. And we will generate more patches. The same procedure applies for all candidates return by the fault localization step.
 
-That is our patch generation step! If we included more repair ingredients by considering all expression at program scope, our search space will be much larger. We can also expand the search space by considering more mutation operations such as combining expression with AND, OR, addition, module etc. This patch generation technique is often called **mutation-based program repair**.
+That is our patch generation step! If we included more repair ingredients by for example considering all expression at program scope, our search space will be much larger. We can also expand the search space by considering more mutation operations such as combining expression with AND, OR, addition, module etc. This patch generation technique is often called **mutation-based program repair**.
 
 ### Patch validation
 
@@ -188,7 +188,10 @@ In the patch validation step, we want to validate the patches generated by the p
 Here I will present some variations in automatic program repair, it is by no means an exhaustive list.
 
 ### Program specification (patch validation)
-[Formal specification](https://en.wikipedia.org/wiki/Formal_specification) is another way to define the program specification. We could also use compiler as program specification, then the types of error that can be repaired are compiler errors. And the patch validation step will be to simply compile the program.
+[Formal specification](https://en.wikipedia.org/wiki/Formal_specification) is another way to define the program specification. And then [formal verification](https://en.wikipedia.org/wiki/Formal_verification) can be used to validate the patched program.
+
+
+We could also use compiler as program specification, then the types of error that can be repaired are compiler errors. And the patch validation step will be to simply compile the program.
 
 ### Fault localization
 We have less choice with fault localization, we could use other formula such as [Ochiai](https://ieeexplore.ieee.org/document/4344104), which is defined as:
