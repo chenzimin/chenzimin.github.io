@@ -1,14 +1,17 @@
 ---
 layout: post
-title: ELI5 - Automatic program repair
+title: Explaining automatic program repair using concrete example
 visible: 0
 ---
+
+When I started working with automatic program repair (Feb 2018). My first question was: "Just how can we automatically repair bugs?". Much like other technologies, once you understand what is going on under the hood. You realize that it is nothing magical, we can solve the problem by simplifying the problem with empirically verified assumptions. So this blog post is intended for people that are interesting in the question, "Just how can we automatically repair bugs?". This by no means the state-of-the-art solution in the field, rather than just very simple approach to illustrate the idea.
+
 
 What is automatic program repair? Martin Monperrus defined it in his paper ["Automatic Software Repair: a Bibliography"](https://arxiv.org/abs/1807.00515) as:
 
 > Automatic repair is the transformation of an unacceptable behavior of a program execution into an acceptable on according to a specification.
 
-So how do automatic program repair transform the program? What are unacceptable/acceptable behavior? How do we define the specification? I will try to give answers to these questions in this blog post. Note that I will only discuss **automatic program repair at source code level**, and I will also trade **accuracy for simplicity** when explaining concepts in automatic program repair.
+So how do automatic program repair transform the program? What is unacceptable/acceptable behavior? How do we define the specification? I will try to give answers to these questions in this blog post by guiding you through a concrete example. Note that I will only discuss **automatic program repair at source code level**, and I will also trade **accuracy for simplicity** when explaining concepts in automatic program repair.
 
 ----
 
@@ -21,7 +24,7 @@ Currently, nearly all automatic program repair tools follow three steps to repai
 
 The first step, fault localization, localize the cause of the unacceptable behavior in the program. The patch generation step then will transform the program by modifying the source code at the specified position. And in the end, the patch validation step will validate the transformed program according to a specification.
 
-Now let's discuss how each step can be achieved. I will be using the following toy example throughout this blog to help me explain each steps:
+Until now, all descriptions of automatic program repair are too abstract. So let's discuss how each step can be achieved in reality. I will be using the following toy example throughout this blog to help me explain each step:
 
 A function that supposed to return the sum of two integers:
 ```python
@@ -32,7 +35,7 @@ def sum(a, b):
     return a+b
 ```
 
-Two test cases, "`test_1`" and "`test_2`", for the "`sum`" function:
+Two test cases, "`test_1`" respective "`test_2`", for the "`sum`" function:
 ```python
 assert(sum(1, 2) == 3)
 ```
@@ -41,9 +44,9 @@ assert(sum(10, 20) == 30)
 ```
 
 ### Fault localization
-The fault localization step tries to localize the cause of the unacceptable behavior in the program. But how do we know that some behavior is unacceptable? In most of the times, we use the **test suite to define the acceptable behavior**. Meaning that if some test cases failed, we have an unacceptable behavior. In other words, there are one/more bug(s) in the program. As a result, we say that the test suite is the program specification. Automatic program repair that uses test suite as specification is called **test suite based automatic program repair**. Test suite based automatic program repair require at least one failing and one passing test case. We need failing test cases to expose the bug, and passing test cases acts as regression test, to make sure we didn't break anything.
+The fault localization step tries to localize the cause of the unacceptable behavior in the program. But how do we know that some behavior is unacceptable? In most of the times, we use the **test suite to define acceptable behavior**. Meaning that if some test cases failed, we have an unacceptable behavior. In other words, there are one/more bug(s) in the program. As a result, we say that the test suite is the program specification. Automatic program repair that uses test suite as tge specification is called **test suite based automatic program repair**. Test suite based automatic program repair require at least one failing and one passing test case. We need failing test cases to expose the bug, and passing test cases acts as regression test, to make sure we didn't break anything.
 
-Now we have decided that test suite is the program specification, how do we localize the bug? Here I will present **spectrum-based fault localization**, the dominant technique to localize the fault. It is build on top of a simple idea, that code components (e.g. statements) executed by falling test cases have higher probability to be the cause of the bug.
+Now we have decided that test suite is the program specification, how do we localize the bug? Here I will present **spectrum-based fault localization**, the dominant technique to localize the fault. It is built on top of a simple idea, that code components (e.g. statements) executed by falling test cases have a higher probability to be the cause of the bug.
 
 Let's use "`sum`", "`test_1`" and "`test_2`" as example. We will record the result of each test cases and log statements that are executed by each test cases. First, "`test_1`" is executed:
 
@@ -82,17 +85,23 @@ def sum(a, b):
     return a+b     # suspicious(s) = (1/1) / ((1/1) + (1/1)) = 1/2
 ```
 
-The formula is called [Tarantula](https://dl.acm.org/citation.cfm?id=1101949) and it is one of most used formula to calculate the suspicious score. Note that higher suspicious score does not necessarily mean anything more than that the statements was executed more times by the failing test cases. Therefore we can trust it and sort the statements based on the suspicious value, or do a weighted random selection, or just random selection.
+The formula is called [Tarantula](https://dl.acm.org/citation.cfm?id=1101949) and it is one of most used formula to calculate the suspicious score. Note that higher suspicious score does not necessarily mean anything more than that the statements were executed more times by the failing test cases. Therefore we can trust it and sort the statements based on the suspicious value, or do a weighted random selection, or just random selection.
 
 ### Patch generation
 
 In the patch generation step, the source code will be modified and patches are generated. Most of the research within automatic program repair is focusing on the patch generation step, since here is where the magic is happening. I will only present one very simple approach here, I may discuss more approaches in the future.
 
- Let's us say that we trust the fault localization step, meaning that we sort the statements based on its suspicious value and process them sequentially. Our first candidate in the list is "`return a`" with a suspicious value of 1. How do we modify it? Should we change the keyword "`return`"? Should we replace "`a`" with "`b`"? Should we add a statement before it? Or should we just delete this statement? Clearly, there are infinite many ways to change this statement, and it is only one of many suspicious statements. Therefore we must reduce the search space in a clever way.
+ Let's us say that we trust the fault localization step, meaning that we sort the statements based on its suspicious value and process them sequentially. Our first candidate in the list is "`return a`" with a suspicious value of 1. How do we modify it? Should we change the keyword "`return`"? Should we replace "`a`" with "`b`"? Should we add a statement before it? Or should we just delete this statement? Clearly, there are infinitely many ways to change this statement, and it is only one of many suspicious statements. Therefore we must reduce the search space in a clever way.
 
-Here we make one assumption to help us to reduce the search space, that is **the correct bug fix may already exists somewhere else in the same file**. This assumption is often called **redundancy assumption**, or **plastic surgery assumption**. What we assume is that the we can reuse code component in the same file to fix existing bugs. The intuition is that the same function can be implemented several times, and we can use code component from the correct implementation to fix the buggy version. We can even expand its scope to reuse code component from the same package, program or code base.
+Here we make one assumption to help us to reduce the search space, that is **the correct bug fix may already exist somewhere else in the same file**. This assumption is often called [**redundancy assumption**](https://arxiv.org/abs/1403.6322), or [**plastic surgery assumption**](https://dl.acm.org/citation.cfm?id=2635898). What we assume is that we can reuse code component in the same file to fix existing bugs. The intuition is that the same function can be implemented several times, and we can use the code component from the correct implementation to fix the buggy version. We can even expand its scope to reuse code component from the same package, program or code base.
 
-In the same time, I will also limit the operation that can be done on source component to only consider **add**, **remove** and **replace** operation. Meaning that we can only add something after the current code component, or remove the current code component, or replace the current code component with other code component. These operation are also called **mutation operation**.
+In the same time, I will also limit the operation that can be done on source component to only consider **add**, **remove** and **replace** operation. Meaning that we can only add something after the current code component, or remove the current code component, or replace the current code component with other code components. These operations are also called **mutation operation**.
+
+| Mutation operation | Descriptions |
+| ------------------ | ------------ |
+| Add | Add code component after the current code component |
+| Remove | Remove the current code component |
+| Replace | Replace the current code component with other code component |
 
 Now we are ready to modify the source code. We will define code component as expression, and our scope of redundancy assumption to all expressions in the same file. Therefore our code components, or **repair ingredients**, in our toy example are:
 ```python
@@ -103,7 +112,7 @@ a+b
 a >= 10
 ```
 
-Our objective is to modify the expression "`a`" in "`return a`" with add, remove or replace mutation operation. Since we are working with expression, we can skip the add operation (with statement it makes more sense), and the remove operation does not need any repair ingredients, since we just remove the current expression. The **search space** (the space where we search for the correct patch) of our toy algorithm for the expression "`a`" is therefore 5 (replace operation) + 1 (remove operation) = 6. And we will generate the following patches:
+Our objective is to modify the expression "`a`" in "`return a`" with add, remove or replace mutation operation. Since we are working with expression, we can skip the add operation (with statement it makes more sense), and the remove operation does not need any repair ingredients, since we just remove the current expression. The **search space** (the space where we search for the correct patch) of our toy algorithm for the expression "`a`" is therefore 5 + 1 = 6. We have 5 repair ingredients where each ingredient can replace "`a`", and we have 1 more patch where "`a`" is simply removed. In short, we will generate the following patches:
 
 patch_1
 ```diff
@@ -165,13 +174,13 @@ def sum(a, b):
     return a+b
 ```
 
-Next we will take the next candidate in the list, which is "`if(a >= 10)`" (breaks tie with line number). Again we have the same repair ingredients and mutation operators. And we will generate more patches. The same procedure applies for all candidate return by the fault localization step.
+Next, we will take the next candidate in the list, which is "`if(a >= 10)`" (breaks tie with line number). Again we have the same repair ingredients and mutation operators. And we will generate more patches. The same procedure applies for all candidate return by the fault localization step.
 
-That is our patch generation step! If we included more repair ingredients by considering all expression at program scope, our search space will be much larger. We can also expand the search space by consider more mutation operations such as combining expression with AND, OR, addition, module etc. This patch generation technique is often called **mutation-based program repair**.
+That is our patch generation step! If we included more repair ingredients by considering all expression at program scope, our search space will be much larger. We can also expand the search space by considering more mutation operations such as combining expression with AND, OR, addition, module etc. This patch generation technique is often called **mutation-based program repair**.
 
 ### Patch validation
 
-In the patch validation we want to validate the patches generated by the patch generation step according to a specification. Since our program specification is our test suite, we will execute the test suite on these new transformed programs. This step is very straightforward and doesn't need much explanation. At the end of this step, only "`patch_4`" passed all test cases, and our program repair tool will output this patch as bug fix.
+In the patch validation step, we want to validate the patches generated by the patch generation step according to a specification. Since our program specification is our test suite, we will execute the test suite on these new transformed programs. This step is very straightforward and doesn't need much explanation. At the end of this step, only "`patch_4`" passed all test cases, and our program repair tool will output this patch as bug fix.
 
 ----
 
@@ -213,4 +222,4 @@ In recent years, deep learning has also made its way into automatic program repa
 
  If you prefer watching video instead of reading, I recommend this presentation from Claire Le Geous (["Automatic Patch Generation" by Claire Le Goues](https://www.youtube.com/watch?v=sRkfMe0_5cA)).
 
- By now you should have pretty clear overview of how automatic program works. But remember that this is only the one toy example and it is only used to demonstrate the concepts in automatic program repair. We haven't touch more complex problem such as large search space, problem with redundancy assumption, overfitting patch and multi location bug repair, which I may discuss in the future. Hopes that this blog helped you and feel free to contact me if you have any questions.
+ By now you should have a pretty clear overview of how automatic program works. But remember that this is only the one toy example and it is only used to demonstrate the concepts in automatic program repair. We haven't touch more complex problem such as large search space, problem with redundancy assumption, overfitting patch and multi-location bug repair, which I may discuss in the future. Hopes that this blog helped you and feel free to contact me if you have any questions.
