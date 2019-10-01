@@ -26,7 +26,7 @@ The first step, fault localization, localize the cause of the unacceptable behav
 
 Until now, all descriptions of automatic program repair are too abstract. So let's discuss how each step can be achieved in reality. I will be using the following toy example throughout this blog to help me explain each step:
 
-A function that supposed to return the sum of two integers:
+A function that is supposed to return the sum of two integers:
 ```python
 def sum(a, b):
   if(a >= 10):
